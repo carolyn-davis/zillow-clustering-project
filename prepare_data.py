@@ -52,7 +52,7 @@ from sklearn.metrics import mean_squared_error, explained_variance_score
 
 
 
-df = a.get_all_zillow_data()
+zillow_df = a.get_all_zillow_data()
 
 zillow_df = df 
 
@@ -496,6 +496,9 @@ test.shape
 #(11966, 17)
 
 
+train_clstr = train.copy()
+#Made a copy of the y_train series and copied to df
+y_train_scaled = pd.DataFrame(y_train)
 
 
 def Min_Max_Scaler(X_train, X_validate, X_test):
@@ -516,11 +519,8 @@ def Min_Max_Scaler(X_train, X_validate, X_test):
 
 scaler, X_train_scaled, X_validate_scaled, X_test_scaled = Min_Max_Scaler(X_train, X_validate, X_test)
 
-
-#Made a copy of the y_train series and copied to df
-y_train_df = pd.DataFrame(y_train)
-# combine target to DataFrame for exploration
-train_scaled = pd.concat((X_train_scaled, y_train_df), axis=1)
+# # combine target to DataFrame for exploration
+train_scaled_comp = pd.concat((X_train_scaled, y_train_scaled), axis=1)
 
 
 # =============================================================================
@@ -541,9 +541,9 @@ train_scaled = pd.concat((X_train_scaled, y_train_df), axis=1)
 # The variables in the data set will be visualized and compared for analysis of
 #  relationship to the target. Any notable observations will be detailed below
 #  after investigating.
-train_scaled.columns
+train_clstr.columns
 # create a pairplot for quick glance at variable interaction
-sns.pairplot(train_scaled.drop(
+sns.pairplot(train_scaled_comp.drop(
     columns=['census_tract', 'LA', 'Ventura', 'Orange', 'latitude', 'longitude',
              'parcel_id', 'year_built'])\
              .sample(n=3000, random_state=19), y_vars=['target'], height=5, aspect=1)
@@ -575,7 +575,7 @@ def target_heat(df, target, method='pearson'):
 
 
 
-target_heat(train_scaled.drop(
+target_heat(train_scaled_comp.drop(
     columns=['census_tract', 'LA', 'Ventura', 'Orange', 'latitude', 'longitude',
              'parcel_id', 'year_built']), 'target')
 
@@ -619,10 +619,10 @@ def corr_test(data, x, y, alpha=0.05, r_type='pearson'):
         ''')
 
 # perform statistical tests on strongest correlations according to heatmap
-corr_test(train_scaled, 'bed_count', 'target')
-corr_test(train_scaled, 'area', 'target')
-corr_test(train_scaled, 'bath_count', 'target')
-corr_test(train_scaled, 'land_value', 'target')
+corr_test(train_scaled_comp, 'bed_count', 'target')
+corr_test(train_scaled_comp, 'area', 'target')
+corr_test(train_scaled_comp, 'bath_count', 'target')
+corr_test(train_scaled_comp, 'land_value', 'target')
 
 # =============================================================================
 #    pearson r = 0.025     BED  COUNT VS TARGET
@@ -683,10 +683,10 @@ def plot_univariate(data, variable):
 
 
 # look more closely at strongest correlations to log_error
-plot_univariate(train_scaled, 'bed_count')
-plot_univariate(train_scaled, 'area')
-plot_univariate(train_scaled, 'bath_count')
-plot_univariate(train_scaled, 'land_value')
+plot_univariate(train_scaled_comp, 'bed_count')
+plot_univariate(train_scaled_comp, 'area')
+plot_univariate(train_scaled_comp, 'bath_count')
+plot_univariate(train_scaled_comp, 'land_value')
 
 # =============================================================================
 #         THOUGHTS/OBSERVATIONS/TAKEAWAYS
@@ -738,11 +738,11 @@ def elbow_plot(df, col_list):
     plt.show()
     
     
-    
+# train_clstr = train.copy()
 # set col_list for cluster formation
 col_list_scaled = ['latitude', 'longitude']
 # create DataFrame for explored variables
-explore_df = train_scaled[col_list_scaled]
+explore_df = train_scaled_comp[col_list_scaled]
 
 
 
@@ -813,7 +813,7 @@ plot_clusters(cluster_df, center_df, 'latitude', 'longitude')
 # set alpha for testing significance
 alpha = 0.05
 # create DataFrame of samples for ANOVA testing
-samples = pd.concat((cluster_df, train.target), axis=1)
+samples = pd.concat((cluster_df, train_clstr.target), axis=1)
 # Perform ANOVA one-way test for null hypotesis
 F, p = stats.f_oneway(samples[samples.cluster == 0].target,
                       samples[samples.cluster == 1].target,
@@ -848,7 +848,7 @@ print(f'''
 # set col_list for cluster formation
 col_list_scaled = ['bed_count', 'area']
 # create DataFrame for explored variables
-explore_df = train_scaled[col_list_scaled]
+explore_df = train_clstr[col_list_scaled]
 
 
 
@@ -873,7 +873,7 @@ plot_clusters(cluster_df, center_df, 'bed_count', 'area')
 # set alpha for testing significance
 alpha = 0.05
 # create DataFrame of samples for ANOVA testing
-samples = pd.concat((cluster_df, train_scaled.target), axis=1)
+samples = pd.concat((cluster_df, train_clstr.target), axis=1)
 # Perform ANOVA one-way test for null hypotesis
 F, p = stats.f_oneway(samples[samples.cluster == 0].target,
                       samples[samples.cluster == 1].target,
@@ -894,14 +894,11 @@ print(f'''
 ''')
 
 
-# REsults
 #       Stats
 # +---------------+
-# | F-value: nan |  𐄂 Fail to reject
-# | p-value: nan |  the null hypothesis.
+# | F-value: 5.74 |  ✓ May reject
+# | p-value: 0.00 |  the null hypothesis.
 # +---------------+
-
-
 
 # =============================================================================
 # Latitude/ Longitude/ Property Value
@@ -910,7 +907,7 @@ print(f'''
 # set col_list for cluster formation
 col_list_scaled = ['latitude', 'longitude', 'property_value']
 # create DataFrame for explored variables
-explore_df = train_scaled[col_list_scaled]
+explore_df = train_clstr[col_list_scaled]
 
 
 
@@ -1036,7 +1033,7 @@ plot_three_d_clusters(cluster_df, center_df, 'latitude', 'longitude', 'property_
 # set alpha for testing significance
 alpha = 0.05
 # create DataFrame of samples for ANOVA testing
-samples = pd.concat((cluster_df, train_scaled.target), axis=1)
+samples = pd.concat((cluster_df, train_clstr.target), axis=1)
 # Perform ANOVA one-way test for null hypotesis
 F, p = stats.f_oneway(samples[samples.cluster == 0].target,
                       samples[samples.cluster == 1].target,
@@ -1061,17 +1058,16 @@ print(f'''
 # =============================================================================
 #       Stats
 # +---------------+
-# | F-value: 8.74 |  ✓ May reject
+# | F-value: 6.94 |  ✓ May reject
 # | p-value: 0.00 |  the null hypothesis.
 # +---------------+
-# 
 # =============================================================================
 
 
 
 # add cluster to DataFrame for feature exploration
-train_scaled['lat_long_pv_clstr'] = cluster_df.cluster
-train_scaled = pd.get_dummies(train_scaled, columns=['lat_long_pv_clstr'], drop_first=True)
+train_scaled_comp['lat_long_pv_clstr'] = cluster_df.cluster
+train_scaled_comp = pd.get_dummies(train_scaled_comp, columns=['lat_long_pv_clstr'], drop_first=True)
 
 
 # =============================================================================
@@ -1080,7 +1076,7 @@ train_scaled = pd.get_dummies(train_scaled, columns=['lat_long_pv_clstr'], drop_
 # set col_list for cluster formation
 col_list_scaled = ['bed_count', 'tax_rate']
 # create DataFrame for explored variables
-explore_df = train_scaled[col_list_scaled]
+explore_df = train_clstr[col_list_scaled]
 
 
 
@@ -1105,7 +1101,7 @@ plot_clusters(cluster_df, center_df, 'bed_count', 'tax_rate')
 # set alpha for testing significance
 alpha = 0.05
 # create DataFrame of samples for ANOVA testing
-samples = pd.concat((cluster_df, train_scaled.target), axis=1)
+samples = pd.concat((cluster_df, train_scaled_comp.target), axis=1)
 # Perform ANOVA one-way test for null hypotesis
 F, p = stats.f_oneway(samples[samples.cluster == 0].target,
                       samples[samples.cluster == 1].target,
@@ -1128,14 +1124,14 @@ print(f'''
 #OUTPUT: SUCCESS 
 #       Stats
 # +---------------+
-# | F-value: 7.03 |  ✓ May reject
+# | F-value: 5.72 |  ✓ May reject
 # | p-value: 0.00 |  the null hypothesis.
 # +---------------+
 
 
 # add cluster to DataFrame for feature exploration
-train_scaled['bed_taxrate_clstr'] = cluster_df.cluster
-train_scaled = pd.get_dummies(train_scaled, columns=['bed_taxrate_clstr'], drop_first=True)
+train_clstr['bed_taxrate_clstr'] = cluster_df.cluster
+train_clstr = pd.get_dummies(train_clstr, columns=['bed_taxrate_clstr'], drop_first=True)
 
 
 
@@ -1146,7 +1142,7 @@ train_scaled = pd.get_dummies(train_scaled, columns=['bed_taxrate_clstr'], drop_
 # set col_list for cluster formation
 col_list_scaled = ['land_value', 'census_tract']
 # create DataFrame for explored variables
-explore_df = train_scaled[col_list_scaled]
+explore_df = train_clstr[col_list_scaled]
 
 
 
@@ -1171,7 +1167,7 @@ plot_clusters(cluster_df, center_df, 'land_value', 'census_tract')
 # set alpha for testing significance
 alpha = 0.05
 # create DataFrame of samples for ANOVA testing
-samples = pd.concat((cluster_df, train_scaled.target), axis=1)
+samples = pd.concat((cluster_df, train_scaled_comp.target), axis=1)
 # Perform ANOVA one-way test for null hypotesis
 F, p = stats.f_oneway(samples[samples.cluster == 0].target,
                       samples[samples.cluster == 1].target,
@@ -1193,16 +1189,16 @@ print(f'''
 
 #Output: SUCCESS
 # =============================================================================
-#           Stats
+#       Stats
 # +---------------+
-# | F-value: 10.37 |  ✓ May reject
+# | F-value: 5.72 |  ✓ May reject
 # | p-value: 0.00 |  the null hypothesis.
 # +---------------+
 # =============================================================================
 
 # add cluster to DataFrame for feature exploration
-train_scaled['land_val_census_clstr'] = cluster_df.cluster
-train_scaled = pd.get_dummies(train_scaled, columns=['land_val_census_clstr'], drop_first=True)
+train_scaled_comp['land_val_census_clstr'] = cluster_df.cluster
+train_scaled_comp = pd.get_dummies(train_scaled_comp, columns=['land_val_census_clstr'], drop_first=True)
 
 
 # =============================================================================
@@ -1292,6 +1288,12 @@ select_kbest(train_scaled2, y_train_df.target, k=7)
 #  'land_value',
 #  'tax_amount']
 # =============================================================================
+
+
+
+
+
+
 train_scaled.columns
 
 clust_feats = ['lat_long_pv_clstr_1', 'lat_long_pv_clstr_2',
@@ -1343,6 +1345,9 @@ select_kbest(train_scaled2, y_train_df.target, k=7)
 # =============================================================================
 #                 MODELING AND EVALUATION
 # =============================================================================
+
+
+
 # use RFE to find top 9 recommended features for modeling
 top_feats = select_rfe(train_scaled2, y_train_df.target, n=9)
 print(f'\nThe top recommended features via RFE are:\n{top_feats}.\n')
@@ -1377,30 +1382,88 @@ print(f'\nThe top recommended features via SelectKBest are:\n{top_ks}.\n')
 #  validate data set and the test data set.
 # =============================================================================
 # create variable holding mean of log_error and attach to y
-baseline_mean = y_train_df.target.mean()
-y_train_df['baseline_mean'] = baseline_mean
-y_validate['baseline_mean'] = baseline_mean
-y_test['baseline_mean'] = baseline_mean
+
+train_scaled_comp.target.mean()
+# 0.014964652517743034
+
+y_validate_scaled = y_validate.copy()
+y_test_scaled = y_test.copy()
+
+# We need y_train and y_validate to be dataframes to append the new columns with predicted values. 
+y_train_scaled = pd.DataFrame(y_train_scaled)
+y_validate_scaled = pd.DataFrame(y_validate_scaled)
+y_test_scaled = pd.DataFrame(y_test_scaled)
+
+# Predict av_pred_mean
+av_pred_mean = y_train_scaled['target'].mean()
+y_train_scaled['baseline'] = av_pred_mean
+y_validate_scaled['baseline'] = av_pred_mean
+y_test_scaled['baseline'] = av_pred_mean
+
+# RMSE of av_pred_mean
+rmse_train = mean_squared_error(y_train_scaled['target'], y_train_scaled['baseline']) ** 0.5
+rmse_validate = mean_squared_error(y_validate_scaled['target'], y_validate_scaled['baseline']) ** 0.5
+
+# How did the baseline mean perform
+print("RMSE using Mean\nTrain/In-Sample: ", round(rmse_train, 4), 
+      "\nValidate/Out-of-Sample: ", round(rmse_validate, 4))
+
+# =============================================================================
+# RMSE using Mean
+# Train/In-Sample:  0.1551 
+# Validate/Out-of-Sample:  0.1573
+# =============================================================================
+# Clean it up now
+metric_df = pd.DataFrame(data=[{
+    'model': 'mean_baseline',
+    'rmse_validate': rmse_validate.round(4),
+    'r^2_validate': explained_variance_score(y_validate_scaled['target'], y_validate_scaled['baseline'])}])
+metric_df
+
+# =============================================================================
+#            model  rmse_validate  r^2_validate
+# 0  mean_baseline         0.1573           0.0
+# =============================================================================
 
 
-# create variable holding mean of log_error and attach to y
-baseline_median = y_train_df.target.median()
-y_train_df['baseline_median'] = baseline_median
-y_validate['baseline_median'] = baseline_median
-y_test['baseline_median'] = baseline_median
+# create the model object
+lm = LinearRegression(normalize=True)
+
+# fit the model to our training data. We must specify the column in y_train, 
+# since we have converted it to a dataframe from a series! 
+lm.fit(X_train_scaled, y_train_scaled['target'])
+
+# predict train
+y_train_scaled['baseline'] = lm.predict(X_train_scaled)
+
+# evaluate: rmse
+rmse_train = mean_squared_error(y_train_scaled['target'], y_train_scaled['baseline']) ** (1/2)
+# predict validate
+y_validate_scaled['baseline'] = lm.predict(X_validate_scaled)
+
+# evaluate: rmse
+rmse_validate = mean_squared_error(y_validate_scaled['target'], y_validate_scaled['baseline']) ** (1/2)
+
+print("RMSE for OLS using LinearRegression\nTraining/In-Sample: ", rmse_train, 
+      "\nValidation/Out-of-Sample: ", rmse_validate)
+
+# =============================================================================
+# RMSE for OLS using LinearRegression
+# Training/In-Sample:  0.15488752156283278 
+# Validation/Out-of-Sample:  0.15715334472353734
+# =============================================================================
+
+metric_df = metric_df.append(
+    {
+    'model': 'OLS lm 1',
+    'rmse_validate': rmse_validate,
+    'r^2_validate': explained_variance_score(y_validate['target'], y_validate['baseline'])}, ignore_index=True)
+metric_df
 
 
 
 
 
-y_val_df = pd.DataFrame(y_validate)
-y_val_df['baseline_mean'] = baseline_mean
-y_val_df['baseline_median'] = baseline_median
-
-
-y_test_df = pd.DataFrame(y_test)
-y_test_df['baseline_mean'] = baseline_mean
-y_test_df['baseline_median'] = baseline_median
 # =============================================================================
 # Train
 # ----------
